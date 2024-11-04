@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Downloader</h1>
+        <form id="urlForm">
+            <input type="text" id="url" name="url" placeholder="Enter YouTube video URL" required>
+            <button type="submit">Get Video Info</button>
+        </form>
+        <div id="videoInfo" style="display: none;">
+            <h2 id="title"></h2>
+            <p id="author"></p>
+            <select id="videoStreams"></select>
+            <select id="audioStreams"></select>
+            <button id="downloadBtn">Download</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#urlForm').on('submit', function(e) {
+                e.preventDefault();
+                let url = $('#url').val();
+                $.post('/video_info', {url: url}, function(data) {
+                    $('#title').text(data.title);
+                    $('#author').text('By: ' + data.author);
+                    $('#videoStreams').empty();
+                    $('#audioStreams').empty();
+                    data.streams.forEach(function(stream) {
+                        let optionText = `${stream.mime_type} - ${stream.resolution} - ${stream.fps}fps - ${(stream.filesize / (1024 * 1024)).toFixed(2)}MB`;
+                        if (stream.type === 'video') {
+                            $('#videoStreams').append(
+                                `<option value="${stream.itag}">${optionText}</option>`
+                            );
+                        } else if (stream.type === 'audio') {
+                            $('#audioStreams').append(
+                                `<option value="${stream.itag}">${optionText}</option>`
+                            );
+                        }
+                    });
+                    $('#videoInfo').show();
+                });
+            });
+
+            $('#downloadBtn').on('click', function() {
+                let url = $('#url').val();
+                let itag_video = $('#videoStreams').val();
+                let itag_audio = $('#audioStreams').val();
+                $.post('/download', {url: url, itag_video: itag_video, itag_audio: itag_audio}, function(data) {
+                    alert(data.message + '\nFile saved at: ' + data.path);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
